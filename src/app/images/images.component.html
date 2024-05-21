@@ -1,5 +1,15 @@
 <div class="container">
-  <img [src]="image$ | async" #img [className]="animation$ | async" />
+  <ng-container *ngIf="imageCoordinates$ | async as coords">
+    <img
+      [src]="image$ | async"
+      #img
+      [className]="animation$ | async"
+      [ngStyle]="{
+        top: coords.imageY + 'px',
+        left: coords.imageX + 'px'
+      }"
+    />
+  </ng-container>
 
   <form [formGroup]="form">
     <input
@@ -14,6 +24,11 @@
       <option></option>
       <option *ngFor="let animation of animations">{{ animation }}</option>
     </select>
+    <input type="checkbox" formControlName="container" />
+    <input type="number" formControlName="containerHeight" />
+    <input type="number" formControlName="containerWidth" />
+    <input type="number" formControlName="imageX" />
+    <input type="number" formControlName="imageY" />
   </form>
 
   <button (click)="download()">Download</button>

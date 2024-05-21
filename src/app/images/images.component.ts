@@ -6,23 +6,19 @@ import {
   inject,
 } from '@angular/core';
 import { FormBuilder } from '@angular/forms';
-import { BehaviorSubject, filter, startWith, switchMap } from 'rxjs';
+import { BehaviorSubject, filter, map, startWith, switchMap } from 'rxjs';
 import { readFile } from './utils/read-file';
 
-const css = `
-.container {
-  position: relative;
-  width: 100%;
-  min-height: 100vh;
+const imageCss = `
+img {
+  position: absolute;
 }
 
 .slide-in-from-top {
-  position: absolute;
   animation: slide-top 5s linear infinite;
 }
 
 .slide-in-from-bottom {
-  position: absolute;
   animation: slide-bottom 5s linear infinite;
 }
 
@@ -45,14 +41,17 @@ const css = `
 }
 `;
 
+const containerClass = 'container';
+
 @Component({
   selector: 'app-images',
   templateUrl: './images.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  styles: [css],
+  styleUrls: ['./images.component.css'],
+  styles: [imageCss],
 })
 export class ImagesComponent {
-  @ViewChild('img') imageElement!: ElementRef<HTMLImageElement>;
+  @ViewChild('img') imageElement!: ElementRef<HTMLElement>;
   public animations = ['slide-in-from-top', 'slide-in-from-bottom'] as const;
   public file$ = new BehaviorSubject<File | null>(null);
   public image$ = this.file$.pipe(
@@ -62,16 +61,51 @@ export class ImagesComponent {
   public form = inject(FormBuilder).group({
     image: [''],
     animation: [''],
+    container: [false],
+    containerHeight: [0],
+    containerWidth: [0],
+    imageX: [0],
+    imageY: [0],
   });
   public animation$ = this.form
     .get('animation')
     ?.valueChanges.pipe(startWith(''));
+  public imageCoordinates$ = this.form.valueChanges.pipe(
+    map(({ imageX, imageY }) => ({ imageX, imageY })),
+    startWith({ imageX: 0, imageY: 0 })
+  );
+
+  private constructContainerStyles(): string {
+    const { containerHeight, containerWidth } = this.form.value;
+
+    return `
+    .${containerClass} {
+    height: ${containerHeight}px;
+    width: ${containerWidth}px;
+    position: relative;
+    }
+    `;
+  }
 
   public download(): void {
-    const htmlString = `
-    <style>${css}</style>
-    ${this.imageElement.nativeElement.outerHTML}
-    `;
+    const { container } = this.form.value;
+    let element = this.imageElement.nativeElement;
+    const styles = (...styles: string[]) => {
+      return `<style>${styles.join(' ')}</style>`;
+    };
+
+    if (container) {
+      const container = document.createElement('div');
+      container.className = containerClass;
+      container.appendChild(element);
+
+      element = container;
+    }
+
+    const htmlString = styles(
+      imageCss,
+      container ? this.constructContainerStyles() : ''
+    ).concat(element.outerHTML);
     const blob = new Blob([htmlString], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
 
