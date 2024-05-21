@@ -1,0 +1,20 @@
+<div class="image-container">
+  <img [src]="image$ | async" />
+</div>
+
+<form [formGroup]="form">
+  <input
+    type="file"
+    id="img"
+    name="img"
+    accept="image/*"
+    (change)="handleFileUpload($event)"
+    formControlName="image"
+  />
+  <select formControlName="animation">
+    <option></option>
+    <option *ngFor="let animation of animations">{{ animation }}</option>
+  </select>
+</form>
+
+<button (click)="download()">Download</button>
